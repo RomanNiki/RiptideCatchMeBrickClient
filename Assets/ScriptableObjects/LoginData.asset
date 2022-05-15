@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 866f79c2221a4e0c8cba7b70a2e41714, type: 3}
+  m_Name: LoginData
+  m_EditorClassIdentifier: 
+  _bearerToken: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjMiLCJoZXJvZXMiOiJbXSIsIm5iZiI6MTY1MjYyNDI4NCwiZXhwIjoxOTY4MjQzNDg0LCJpYXQiOjE2NTI2MjQyODR9.O550SvqahK2mWgEVItvNdPv0VDsn_saVe2Im-Ji7QPk

@@ -5,18 +5,19 @@ using UnityEngine.UI;
 
 namespace UI
 {
+    [RequireComponent(typeof(Image))]
     public class ConnectionMenu : MonoBehaviour
     {
-      [Header("Connect")] [SerializeField]
-      private GameObject _connectionMenu;
-
+      [Header("Connect")] 
+      [SerializeField] private GameObject _connectionMenu;
       [SerializeField] private TMP_InputField _inputField;
       [SerializeField] private Button _button;
-      private Networking _networking;
+      [SerializeField] private Networking _networking;
+      private Image _backGround;
 
-      private void Awake()
+      private void Start()
       {
-         _networking = FindObjectOfType<Networking>();
+          _backGround = GetComponent<Image>();
       }
 
       private void OnEnable()
@@ -33,10 +34,12 @@ namespace UI
 
       private void OnConnectionButtonClick()
       {
-          _inputField.interactable = false;
-          _connectionMenu.SetActive(false);
-          
           _networking.Connect();
+          _inputField.gameObject.SetActive(false);
+          _button.gameObject.SetActive(false);
+          var color = _backGround.color;
+          color.a = 0f;
+          _backGround.color = color;
       }
 
       private void OnConnect(bool success)
@@ -53,8 +56,11 @@ namespace UI
 
       private void BackToMain()
       {
-          _inputField.interactable = true;
-          _connectionMenu.SetActive(true);
+          _inputField.gameObject.SetActive(true);
+          _button.gameObject.SetActive(true);
+          var color = _backGround.color;
+          color.a = 1f;
+          _backGround.color = color;
       }
     }
 }

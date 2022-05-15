@@ -11,18 +11,50 @@ namespace Multiplayer
     {
         [SerializeField] private string _ip;
         [SerializeField] private ushort _port;
+        [SerializeField] private ushort _tickDivergenceTolerance = 1;
         private string _clientName;
-        public Client Client { get; set; } = new Client();
+        private static ushort _serverTick;
+        private static ushort _ticksBetweenPositionUpdate = 2;
+        private static ushort _staticTickDivergenceToTolerance;
+        public static ushort InterpolationTick { get; private set; }
+
+        public static ushort ServerTick
+        {
+            get => _serverTick;
+            private set
+            {
+                _serverTick = value;
+                InterpolationTick = (ushort) (value - TicksBetweenPositionUpdate);
+            }
+        }
+
+        public static ushort TicksBetweenPositionUpdate
+        {
+            get => _ticksBetweenPositionUpdate;
+            private set
+            {
+                _ticksBetweenPositionUpdate = value;
+                InterpolationTick = (ushort) (ServerTick - value);
+            }
+        }
+
+        public Client Client { get; } = new Client();
         public UnityAction<bool> Connected;
+
+        private void OnValidate()
+        {
+            _staticTickDivergenceToTolerance = _tickDivergenceTolerance;
+        }
 
         private void Start()
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
-            
             Client.Connected += OnConnected;
             Client.ConnectionFailed += OnFailedToConnect;
             Client.Disconnected += OnDisconnected;
             Client.ClientDisconnected += OnPlayerLeft;
+
+            ServerTick = TicksBetweenPositionUpdate;
         }
 
         private void OnDisable()
@@ -30,6 +62,7 @@ namespace Multiplayer
             Client.Connected -= OnConnected;
             Client.ConnectionFailed -= OnFailedToConnect;
             Client.Disconnected -= OnDisconnected;
+            Client.ClientDisconnected -= OnPlayerLeft;
         }
 
         private void FixedUpdate()
@@ -37,6 +70,7 @@ namespace Multiplayer
             if (Client.IsConnected)
             {
                 Client.Tick();
+                ServerTick++;
             }
         }
 
@@ -52,38 +86,53 @@ namespace Multiplayer
 
         public void SetClientName(string newName)
         {
-            if (newName != string.Empty)
-            {
-                _clientName = newName;
-            }
-            else
-            {
-                _clientName = string.Empty;
-            }
-            
-            var message = Message.Create(MessageSendMode.reliable, (ushort) ClientToServerId.Name);
+            _clientName = newName;
+
+            var message = Message.Create(MessageSendMode.reliable, ClientToServerId.Name);
             message.AddString(_clientName);
             Client.Send(message);
         }
 
         private void OnConnected(object sender, EventArgs e)
         {
-            Connected.Invoke(true);
+            Connected?.Invoke(true);
         }
 
         private void OnFailedToConnect(object sender, EventArgs e)
         {
-            Connected.Invoke(false);
+            Connected?.Invoke(false);
         }
-        
+
         private void OnDisconnected(object sender, EventArgs e)
         {
-            Connected.Invoke(false);
+            Connected?.Invoke(false);
+            foreach (var player in PlayerSpawner.Players.Values)
+            {
+                Destroy(player.gameObject);
+            }
         }
-        
+
         private static void OnPlayerLeft(object sender, ClientDisconnectedEventArgs e)
         {
-            Destroy(PlayerSpawner.Players[e.Id].gameObject);
+            if (PlayerSpawner.Players.TryGetValue(e.Id, out var player))
+            {
+                Destroy(player.gameObject);
+            }
+        }
+
+        private static void SetTick(ushort serverTick)
+        {
+            if (Mathf.Abs(ServerTick - serverTick) > _staticTickDivergenceToTolerance)
+            {
+                Debug.Log($"Client tick: {ServerTick} -> {serverTick}");
+                ServerTick = serverTick;
+            }
+        }
+
+        [MessageHandler((ushort) ServerToClientId.Sync)]
+        public static void Sync(Message message)
+        {
+            SetTick(message.GetUShort());
         }
     }
 }
