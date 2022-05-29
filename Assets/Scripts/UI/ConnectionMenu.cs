@@ -10,6 +10,7 @@ namespace UI
     {
       [Header("Connect")] 
       [SerializeField] private GameObject _connectionMenu;
+      [SerializeField] private GameObject _gameUI;
       [SerializeField] private TMP_InputField _inputField;
       [SerializeField] private Button _button;
       [SerializeField] private Networking _networking;
@@ -34,9 +35,9 @@ namespace UI
 
       private void OnConnectionButtonClick()
       {
+          _gameUI.SetActive(true);
           _networking.Connect();
-          _inputField.gameObject.SetActive(false);
-          _button.gameObject.SetActive(false);
+          _connectionMenu.SetActive(false);
           var color = _backGround.color;
           color.a = 0f;
           _backGround.color = color;
@@ -56,8 +57,8 @@ namespace UI
 
       private void BackToMain()
       {
-          _inputField.gameObject.SetActive(true);
-          _button.gameObject.SetActive(true);
+          _gameUI.SetActive(false);
+          _connectionMenu.SetActive(true);
           var color = _backGround.color;
           color.a = 1f;
           _backGround.color = color;

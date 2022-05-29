@@ -1,9 +1,12 @@
 using System;
+using System.Collections;
+using PlayerComponents;
 using RiptideNetworking;
 using RiptideNetworking.Utils;
 using SharedLibrary;
 using UnityEngine;
 using UnityEngine.Events;
+using Client = RiptideNetworking.Client;
 
 namespace Multiplayer
 {
@@ -12,12 +15,13 @@ namespace Multiplayer
         [SerializeField] private string _ip;
         [SerializeField] private ushort _port;
         [SerializeField] private ushort _tickDivergenceTolerance = 1;
-        private string _clientName;
+        [SerializeField] private float _secondsToConnect = 3;
         private static ushort _serverTick;
         private static ushort _ticksBetweenPositionUpdate = 2;
         private static ushort _staticTickDivergenceToTolerance;
+        private bool _connected;
+        public UnityAction<bool> Connected;
         public static ushort InterpolationTick { get; private set; }
-
         public static ushort ServerTick
         {
             get => _serverTick;
@@ -27,19 +31,16 @@ namespace Multiplayer
                 InterpolationTick = (ushort) (value - TicksBetweenPositionUpdate);
             }
         }
-
-        public static ushort TicksBetweenPositionUpdate
+        private static ushort TicksBetweenPositionUpdate
         {
             get => _ticksBetweenPositionUpdate;
-            private set
+            set
             {
                 _ticksBetweenPositionUpdate = value;
                 InterpolationTick = (ushort) (ServerTick - value);
             }
         }
-
-        public Client Client { get; } = new Client();
-        public UnityAction<bool> Connected;
+        public Client Client { get; private set; }
 
         private void OnValidate()
         {
@@ -49,20 +50,31 @@ namespace Multiplayer
         private void Start()
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
-            Client.Connected += OnConnected;
-            Client.ConnectionFailed += OnFailedToConnect;
-            Client.Disconnected += OnDisconnected;
-            Client.ClientDisconnected += OnPlayerLeft;
+            InitClient();
+        }
+
+        private void InitClient()
+        {
+            Client = new Client();
 
             ServerTick = TicksBetweenPositionUpdate;
+            Client.Connected += OnConnected;
+            Client.ConnectionFailed += OnFailedToConnect;
+            Client.ClientDisconnected += OnPlayerLeft;
+            Client.Disconnected += OnDisconnected;
+        }
+
+        private void Unsubscribe()
+        {
+            Client.Connected -= OnConnected;
+            Client.ConnectionFailed -= OnFailedToConnect;
+            Client.ClientDisconnected -= OnPlayerLeft;
+            Client.Disconnected -= OnDisconnected;
         }
 
         private void OnDisable()
         {
-            Client.Connected -= OnConnected;
-            Client.ConnectionFailed -= OnFailedToConnect;
-            Client.Disconnected -= OnDisconnected;
-            Client.ClientDisconnected -= OnPlayerLeft;
+            Unsubscribe();
         }
 
         private void FixedUpdate()
@@ -74,6 +86,18 @@ namespace Multiplayer
             }
         }
 
+        private IEnumerator TryToConnect()
+        {
+            yield return new WaitForSeconds(_secondsToConnect);
+            if (_connected == false)
+            {
+                Client.Disconnect();
+                Unsubscribe();
+                InitClient();
+                Connected?.Invoke(false);
+            }
+        }
+
         private void OnApplicationQuit()
         {
             Client.Disconnect();
@@ -81,20 +105,20 @@ namespace Multiplayer
 
         public void Connect()
         {
+            StartCoroutine(TryToConnect());
             Client.Connect($"{_ip}:{_port}");
         }
 
         public void SetClientName(string newName)
         {
-            _clientName = newName;
-
             var message = Message.Create(MessageSendMode.reliable, ClientToServerId.Name);
-            message.AddString(_clientName);
+            message.AddString(newName);
             Client.Send(message);
         }
 
         private void OnConnected(object sender, EventArgs e)
         {
+            _connected = true;
             Connected?.Invoke(true);
         }
 
@@ -103,12 +127,13 @@ namespace Multiplayer
             Connected?.Invoke(false);
         }
 
-        private void OnDisconnected(object sender, EventArgs e)
+        private void OnDisconnected(object sender, DisconnectedEventArgs e)
         {
+            _connected = false;
             Connected?.Invoke(false);
             foreach (var player in PlayerSpawner.Players.Values)
             {
-                Destroy(player.gameObject);
+                Destroy(player.Player.gameObject);
             }
         }
 
@@ -116,7 +141,7 @@ namespace Multiplayer
         {
             if (PlayerSpawner.Players.TryGetValue(e.Id, out var player))
             {
-                Destroy(player.gameObject);
+                Destroy(player.Player.gameObject);
             }
         }
 

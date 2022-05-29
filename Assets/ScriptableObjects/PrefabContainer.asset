@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d75da3baa9e041a099d007132d2692fe, type: 3}
+  m_Name: PrefabContainer
+  m_EditorClassIdentifier: 
+  _localPlayerPrefab: {fileID: 6052294288280646900, guid: a002caeaac5daa54f8e9b16dd7247613, type: 3}
+  _redPlayerPrefab: {fileID: 2170487184723963368, guid: 508358fe9eda0c64d9e04ef633ed0540, type: 3}
+  _bluePlayerPrefab: {fileID: 1611053992945266807, guid: fc263252d8274864ab2e94e9c6e2ca73, type: 3}
+  _projectiles:
+  - {fileID: -9165266455530032261, guid: 012622ea2914ad34aa14c76b2c173893, type: 3}
